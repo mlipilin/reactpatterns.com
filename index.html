@@ -49,6 +49,7 @@ code, .highlight pre{font-size: .9em}
 <li><a href="#higher-order-component">Higher-order component</a></li>
 <li><a href="#state-hoisting">State hoisting</a></li>
 <li><a href="#controlled-input">Controlled input</a></li>
+<li><a href="#context-provider">Context provider</a></li>
 </ul>
 <h2 id="stateless-function">Stateless function</h2>
 <p><a href="https://facebook.github.io/react/docs/components-and-props.html">Stateless functions</a> are a brilliant way to define highly reusable components. They don’t hold <code>state</code>; they’re just functions.</p>
@@ -332,33 +333,25 @@ code, .highlight pre{font-size: .9em}
 </code></pre>
 <p>Many developers favor <a href="#higher-order-component">Higher Order Components</a> for this type of functionality. It’s a matter of preference.</p>
 <h2 id="children-pass-through">Children pass-through</h2>
-<p>You might create a component designed to apply <code>context</code> and render its <code>children</code>.</p>
-<pre><code class="lang-js"><div class="highlight"><pre><span class="kr">class</span> <span class="nx">SomeContextProvider</span> <span class="kr">extends</span> <span class="nx">React</span><span class="p">.</span><span class="nx">Component</span> <span class="p">{</span>
-  <span class="nx">getChildContext</span><span class="p">()</span> <span class="p">{</span>
-    <span class="k">return</span> <span class="p">{</span><span class="nx">some</span><span class="o">:</span> <span class="s2">&quot;context&quot;</span><span class="p">}</span>
+<p>There are times you’ll need to wrap a stateless function with lifecycle events.
+While we want to wrap component functionality around other components, we don’t want to introduce extraneous DOM nodes.
+In some apps, this might brake styling.</p>
+<p>We use the function <code>React.Children.only</code>.
+<code>only</code> allows us to return <code>this.props.children</code> <strong>if</strong> there is only one child.
+Otherwise, it throws an error.</p>
+<pre><code class="lang-js"><div class="highlight"><pre><span class="kr">class</span> <span class="nx">SomeLifeCycleWrapper</span> <span class="kr">extends</span> <span class="nx">React</span><span class="p">.</span><span class="nx">Component</span> <span class="p">{</span>
+  <span class="nx">componentDidMount</span><span class="p">()</span> <span class="p">{</span>
+    <span class="nx">console</span><span class="p">.</span><span class="nx">log</span><span class="p">(</span><span class="s2">&quot;I mounted but have no DOM.&quot;</span><span class="p">)</span>
   <span class="p">}</span>
 
   <span class="nx">render</span><span class="p">()</span> <span class="p">{</span>
-    <span class="c1">// how best do we return `children`?</span>
+    <span class="k">return</span> <span class="nx">React</span><span class="p">.</span><span class="nx">Children</span><span class="p">.</span><span class="nx">only</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">props</span><span class="p">.</span><span class="nx">children</span><span class="p">)</span>
   <span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
 
 </code></pre>
-<p>You’re faced with a decision. Wrap <code>children</code> in an extraneous <code>&lt;div /&gt;</code> or return <code>children</code> directly. The first options gives you extra markup (which can break some stylesheets). The second will result in unhelpful errors.</p>
-<pre><code class="lang-js"><div class="highlight"><pre><span class="c1">// option 1: extra div</span>
-<span class="k">return</span> <span class="o">&lt;</span><span class="nx">div</span><span class="o">&gt;</span><span class="p">{</span><span class="nx">children</span><span class="p">}</span><span class="o">&lt;</span><span class="err">/div&gt;</span>
-
-<span class="c1">// option 2: unhelpful errors</span>
-<span class="k">return</span> <span class="nx">children</span>
-</pre></div>
-
-</code></pre>
-<p>It’s best to treat <code>children</code> as an opaque data type. React provides <code>React.Children</code> for dealing with <code>children</code> appropriately.</p>
-<pre><code class="lang-js"><div class="highlight"><pre><span class="k">return</span> <span class="nx">React</span><span class="p">.</span><span class="nx">Children</span><span class="p">.</span><span class="nx">only</span><span class="p">(</span><span class="k">this</span><span class="p">.</span><span class="nx">props</span><span class="p">.</span><span class="nx">children</span><span class="p">)</span>
-</pre></div>
-
-</code></pre>
+<p>In cases where you’re working with <code>state</code> or <code>context</code>, prefer <a href="#higher-order-component">higher-order components</a> or <a href="#render-callback">render callbacks</a>.</p>
 <h2 id="proxy-component">Proxy component</h2>
 <p><em>(I’m not sure if this name makes sense)</em></p>
 <p>Buttons are everywhere in web apps. And every one of them must have the <code>type</code> attribute set to “button”.</p>
@@ -648,6 +641,35 @@ It only updates the DOM when state has changed in our component.
 This is invaluable when creating consistent UIs.</p>
 <p><em>If you’re using <a href="#stateless-function">stateless functions</a> for form elements,
 read about using <a href="#state-hoisting">state hoisting</a> to move new state up the component tree.</em></p>
+<h2 id="context-provider">Context provider</h2>
+<p><strong>WARNING:</strong> <em>The React team makes it clear that Context is an API that is likely to change.
+I’ll do my best to tell you about this pattern responsibly. I use it often and love it.</em></p>
+<p>There’s an API we haven’t discussed yet, but it’s been lurking in the shadows.
+It’s name: <a href="https://facebook.github.io/react/docs/context.html">Context</a>.</p>
+<p>Along with <code>props</code>, all components have access to <code>context</code>.</p>
+<pre><code class="lang-js"><div class="highlight"><pre><span class="kr">const</span> <span class="nx">MyComponentFunction</span> <span class="o">=</span> <span class="p">(</span><span class="nx">props</span><span class="p">,</span> <span class="nx">context</span><span class="p">)</span> <span class="o">=&gt;</span>
+  <span class="o">&lt;</span><span class="nx">div</span><span class="o">&gt;</span>
+    <span class="nx">Context</span><span class="p">,</span> <span class="nx">you</span> <span class="nx">sneaky</span><span class="p">...</span>
+    <span class="p">{</span><span class="nx">context</span><span class="p">.</span><span class="nx">soSeaky</span><span class="p">}</span>
+  <span class="o">&lt;</span><span class="err">/div&gt;</span>
+
+<span class="kr">class</span> <span class="nx">MyComponentClass</span> <span class="kr">extends</span> <span class="nx">React</span><span class="p">.</span><span class="nx">Component</span> <span class="p">{</span>
+  <span class="nx">render</span><span class="p">()</span> <span class="p">{</span>
+    <span class="k">return</span> <span class="p">(</span>
+      <span class="o">&lt;</span><span class="nx">div</span><span class="o">&gt;</span>
+        <span class="nx">Context</span><span class="p">,</span> <span class="nx">component</span> <span class="nx">classes</span> <span class="nx">too</span><span class="p">...</span>
+        <span class="p">{</span><span class="k">this</span><span class="p">.</span><span class="nx">context</span><span class="p">.</span><span class="nx">soSneaky</span><span class="p">}</span>
+      <span class="o">&lt;</span><span class="err">/div&gt;</span>
+    <span class="p">)</span>
+  <span class="p">}</span>
+<span class="p">}</span>
+</pre></div>
+
+</code></pre>
+<p>But <code>context</code> is a different beast entirely.</p>
+<p>There’s not a short way to tell you how do use a Context provider the right way.</p>
+<p><a href="https://facebook.github.io/react/docs/context.html">Context</a> is like an invisible <code>props</code> object that is secretly available to your entire component tree.</p>
+<p>…</p>
 
   </div>
   <script>
